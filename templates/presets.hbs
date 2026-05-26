@@ -47,8 +47,9 @@
   {{/if}}
 
   {{#each userPresets as |p|}}
-  <fieldset class="preset" data-preset-id="{{p.id}}">
-    <legend>
+  <details class="preset" data-preset-id="{{p.id}}" open>
+    <summary class="preset-header">
+      <i class="fa-solid fa-chevron-right preset-chevron"></i>
       <input type="text" name="presets.{{p.id}}.name" value="{{p.name}}" placeholder="Preset name"/>
       <button type="button" class="icon" data-action="applyDefaults" data-preset-id="{{p.id}}" title="{{localize 'TOKEN_PRESETS.Manager.applyDefaults'}}">
         <i class="fa-solid fa-rotate-left"></i>
@@ -56,36 +57,38 @@
       <button type="button" class="icon" data-action="deletePreset" data-preset-id="{{p.id}}" title="{{localize 'TOKEN_PRESETS.Manager.delete'}}">
         <i class="fa-solid fa-trash"></i>
       </button>
-    </legend>
-    {{#each p.sections as |s|}}
-    <details class="section" open>
-      <summary class="section-toggle"><i class="fa-solid fa-chevron-right"></i> {{localize s.label}}</summary>
-      {{#each s.fields as |f|}}
-      <div class="field {{f.type}}">
-        {{#if (eq f.type "boolean")}}
-        <label class="bool">
-          <input type="checkbox" name="presets.{{p.id}}.fields.{{f.key}}.value" {{#if f.value}}checked{{/if}}/>
-          <span>{{localize f.label}}</span>
-        </label>
-        {{else}}
-        <span class="field-label">{{localize f.label}}</span>
-        {{#if (eq f.type "select")}}
-        <select name="presets.{{p.id}}.fields.{{f.key}}.value">
-          {{#each f.choices as |c|}}
-          <option value="{{c.value}}" {{#if c.selected}}selected{{/if}}>{{c.label}}</option>
-          {{/each}}
-        </select>
-        {{else if (eq f.type "number")}}
-        <range-picker name="presets.{{p.id}}.fields.{{f.key}}.value" value="{{f.value}}" min="{{f.min}}" max="{{f.max}}" step="{{f.step}}"></range-picker>
-        {{else if (eq f.type "color")}}
-        <color-picker name="presets.{{p.id}}.fields.{{f.key}}.value" value="{{f.value}}"></color-picker>
-        {{/if}}
-        {{/if}}
-      </div>
+    </summary>
+    <div class="preset-body">
+      {{#each p.sections as |s|}}
+      <details class="section" open>
+        <summary class="section-toggle"><i class="fa-solid fa-chevron-right"></i> {{localize s.label}}</summary>
+        {{#each s.fields as |f|}}
+        <div class="field {{f.type}}">
+          {{#if (eq f.type "boolean")}}
+          <label class="bool">
+            <input type="checkbox" name="presets.{{p.id}}.fields.{{f.key}}.value" {{#if f.value}}checked{{/if}}/>
+            <span>{{localize f.label}}</span>
+          </label>
+          {{else}}
+          <span class="field-label">{{localize f.label}}</span>
+          {{#if (eq f.type "select")}}
+          <select name="presets.{{p.id}}.fields.{{f.key}}.value">
+            {{#each f.choices as |c|}}
+            <option value="{{c.value}}" {{#if c.selected}}selected{{/if}}>{{c.label}}</option>
+            {{/each}}
+          </select>
+          {{else if (eq f.type "number")}}
+          <range-picker name="presets.{{p.id}}.fields.{{f.key}}.value" value="{{f.value}}" min="{{f.min}}" max="{{f.max}}" step="{{f.step}}"></range-picker>
+          {{else if (eq f.type "color")}}
+          <color-picker name="presets.{{p.id}}.fields.{{f.key}}.value" value="{{f.value}}"></color-picker>
+          {{/if}}
+          {{/if}}
+        </div>
+        {{/each}}
+      </details>
       {{/each}}
-    </details>
-    {{/each}}
-  </fieldset>
+    </div>
+  </details>
   {{/each}}
 
 </section>

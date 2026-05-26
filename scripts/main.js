@@ -280,12 +280,12 @@ function addTokenToolbarButton(controls) {
   if (!tokenControl) return;
 
   const tool = {
-    name: "token-presets-apply-preset",
-    title: "TOKEN_PRESETS.Tool.applyToSelection",
+    name: "token-presets-landing",
+    title: "TOKEN_PRESETS.Tool.openLanding",
     icon: "fa-solid fa-user-gear",
     button: true,
     visible: !!game.user?.isGM,
-    onChange: () => applyPresetToSelectedTokens()
+    onChange: () => openLandingDialog()
   };
 
   if (Array.isArray(tokenControl.tools)) {
@@ -344,7 +344,7 @@ async function applyPresetToSelectedTokens() {
     .map((t) => {
       const label =
         t.actorName && t.actorName !== t.name ? `${t.name} (${t.actorName})` : t.name;
-      return `<option value="${escapeHTML(t.id)}"${preselected.has(t.id) ? " selected" : ""}>${escapeHTML(label)}</option>`;
+      return `<option value="${escapeHTML(t.id)}" data-actor-id="${escapeHTML(t.actorId ?? "")}"${preselected.has(t.id) ? " selected" : ""}>${escapeHTML(label)}</option>`;
     })
     .join("");
 
@@ -353,6 +353,10 @@ async function applyPresetToSelectedTokens() {
       <label for="token-presets-multi-preset">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Picker.label"))}</label>
       <select id="token-presets-multi-preset" name="presetId">${presetOptions}</select>
     </div>
+    <div class="form-group">
+      <label for="token-presets-multi-folder">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Folder.filterLabel"))}</label>
+      <select id="token-presets-multi-folder" name="folderId">${renderFolderFilterOptions()}</select>
+    </div>
     <div class="form-group token-presets-token-list">
       <label for="token-presets-multi-tokens">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.MultiPicker.tokensLabel"))}</label>
       <select id="token-presets-multi-tokens" name="tokenIds" multiple size="12">${tokenOptions}</select>
@@ -360,12 +364,28 @@ async function applyPresetToSelectedTokens() {
     </div>
   `;
 
+  const dialogClass = "token-presets-multi-picker-dialog";
+  const renderHookId = Hooks.on("renderDialogV2", (app) => {
+    if (!app.options.classes?.includes(dialogClass)) return;
+    Hooks.off("renderDialogV2", renderHookId);
+    const root = app.element;
+    const folderSel = root.querySelector("select[name='folderId']");
+    const tokenSel = root.querySelector("select[name='tokenIds']");
+    if (!folderSel || !tokenSel) return;
+    const filter = () => {
+      const allowed = actorIdsInFolderFilter(folderSel.value);
+      applyFolderFilterToList(tokenSel, allowed, (opt) => opt.dataset.actorId || null);
+    };
+    folderSel.addEventListener("change", filter);
+  });
+
   const { DialogV2 } = foundry.applications.api;
   const result = await DialogV2.wait({
     window: {
       title: game.i18n.localize("TOKEN_PRESETS.MultiPicker.title"),
       icon: "fa-solid fa-user-gear"
     },
+    classes: [dialogClass],
     content,
     position: { width: 480 },
     buttons: [
@@ -390,6 +410,7 @@ async function applyPresetToSelectedTokens() {
     ],
     rejectClose: false
   });
+  Hooks.off("renderDialogV2", renderHookId);
 
   if (!result) return;
   if (!result.tokenIds?.length) {
@@ -410,6 +431,272 @@ async function applyPresetToSelectedTokens() {
   const total = await pushPresetToTokens(preset, tokenDocs, presetId);
   if (result.presetId) await game.settings.set(MODULE_ID, SETTINGS.DEFAULT_PRESET_ID, result.presetId);
   ui.notifications?.info(game.i18n.format("TOKEN_PRESETS.Push.done", { count: total }));
+}
+
+/* ------------------------------------------------------------------------ */
+/* Landing window: persistent hub opened by the toolbar button.             */
+/* ------------------------------------------------------------------------ */
+
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+class LandingPage extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "token-presets-landing",
+    classes: ["token-presets", "token-presets-landing-app"],
+    tag: "div",
+    window: {
+      title: "TOKEN_PRESETS.Landing.title",
+      icon: "fa-solid fa-user-gear",
+      resizable: false
+    },
+    position: { width: 360, height: "auto" },
+    actions: {
+      manage: LandingPage.#onManage,
+      applyTokens: LandingPage.#onApplyTokens,
+      tagActors: LandingPage.#onTagActors
+    }
+  };
+
+  static PARTS = {
+    body: { template: `modules/${MODULE_ID}/templates/landing.hbs` }
+  };
+
+  static async #onManage() {
+    new PresetManager().render({ force: true });
+  }
+
+  static async #onApplyTokens() {
+    await applyPresetToSelectedTokens();
+  }
+
+  static async #onTagActors() {
+    await openTagActorsDialog();
+  }
+}
+
+let _landingInstance = null;
+
+function openLandingDialog() {
+  if (_landingInstance?.rendered) {
+    _landingInstance.bringToTop?.();
+    return;
+  }
+  _landingInstance = new LandingPage();
+  _landingInstance.render({ force: true });
+}
+
+/* ------------------------------------------------------------------------ */
+/* Actor-folder helpers used by the filter drop-downs.                       */
+/* ------------------------------------------------------------------------ */
+
+/** Build a depth-tagged list of every Actor folder, respecting Foundry's sort order. */
+function buildActorFolderTree() {
+  const folders = [...game.folders].filter((f) => f.type === "Actor");
+  const byParent = new Map();
+  for (const f of folders) {
+    const parentId = f.folder?.id ?? null;
+    if (!byParent.has(parentId)) byParent.set(parentId, []);
+    byParent.get(parentId).push(f);
+  }
+  for (const arr of byParent.values()) {
+    arr.sort((a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name));
+  }
+  const out = [];
+  const walk = (parentId, depth) => {
+    for (const f of byParent.get(parentId) ?? []) {
+      out.push({ id: f.id, name: f.name, depth });
+      walk(f.id, depth + 1);
+    }
+  };
+  walk(null, 0);
+  return out;
+}
+
+/** Collect the given folder id plus all descendant folder ids into a Set. */
+function collectDescendantFolderIds(folderId) {
+  const ids = new Set([folderId]);
+  const queue = [folderId];
+  while (queue.length) {
+    const id = queue.shift();
+    const folder = game.folders.get(id);
+    if (!folder) continue;
+    for (const child of folder.children ?? []) {
+      const cf = child?.folder ?? child;
+      if (cf?.id && !ids.has(cf.id)) {
+        ids.add(cf.id);
+        queue.push(cf.id);
+      }
+    }
+  }
+  return ids;
+}
+
+/**
+ * Build the option HTML for an Actor-folder picker.
+ * - Empty value = all folders.
+ * - "__uncategorized__" = actors with no folder.
+ * - Folder ids = that folder and any descendant.
+ */
+function renderFolderFilterOptions() {
+  const tree = buildActorFolderTree();
+  const indent = (depth) => "   ".repeat(depth);
+  return [
+    `<option value="" selected>${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Folder.all"))}</option>`,
+    `<option value="__uncategorized__">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Folder.uncategorized"))}</option>`,
+    ...tree.map(
+      (f) => `<option value="${escapeHTML(f.id)}">${indent(f.depth)}${escapeHTML(f.name)}</option>`
+    )
+  ].join("");
+}
+
+/** Which actor IDs match a folder-filter selection? null means "no filter". */
+function actorIdsInFolderFilter(folderId) {
+  if (!folderId) return null;
+  if (folderId === "__uncategorized__") {
+    return new Set([...game.actors].filter((a) => !a.folder).map((a) => a.id));
+  }
+  const folderIds = collectDescendantFolderIds(folderId);
+  return new Set(
+    [...game.actors].filter((a) => a.folder && folderIds.has(a.folder.id)).map((a) => a.id)
+  );
+}
+
+/** Hide/disable list items not allowed by the current filter. Clears stale selection. */
+function applyFolderFilterToList(listEl, allowedActorIds, getActorIdForOption) {
+  for (const option of listEl.options) {
+    const actorId = getActorIdForOption(option);
+    const allowed = !allowedActorIds || (actorId && allowedActorIds.has(actorId));
+    option.hidden = !allowed;
+    option.disabled = !allowed;
+    if (!allowed) option.selected = false;
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Multi-actor tagging dialog (from the landing page).                       */
+/* ------------------------------------------------------------------------ */
+
+async function openTagActorsDialog() {
+  const actors = [...game.actors].sort((a, b) => a.name.localeCompare(b.name));
+  if (!actors.length) {
+    ui.notifications?.info(game.i18n.localize("TOKEN_PRESETS.TagActors.noActors"));
+    return;
+  }
+
+  const builtins = Object.values(BUILTIN_PRESETS);
+  const userPresets = Object.values(game.settings.get(MODULE_ID, SETTINGS.PRESETS) ?? {});
+  if (!builtins.length && !userPresets.length) {
+    ui.notifications?.warn(game.i18n.localize("TOKEN_PRESETS.Picker.noPresets"));
+    return;
+  }
+
+  const lastUsed = game.settings.get(MODULE_ID, SETTINGS.DEFAULT_PRESET_ID) || "";
+  const presetOpt = (p) =>
+    `<option value="${escapeHTML(p.id)}"${p.id === lastUsed ? " selected" : ""}>${escapeHTML(p.name)}</option>`;
+  const presetOptions = [
+    `<option value=""${!lastUsed ? " selected" : ""}>${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Picker.none"))}</option>`,
+    builtins.length
+      ? `<optgroup label="${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Picker.builtinGroup"))}">${builtins.map(presetOpt).join("")}</optgroup>`
+      : "",
+    userPresets.length
+      ? `<optgroup label="${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Picker.customGroup"))}">${userPresets.map(presetOpt).join("")}</optgroup>`
+      : ""
+  ].join("");
+
+  const actorOptions = actors
+    .map((a) => {
+      const flaggedId = a.getFlag(MODULE_ID, FLAGS.PRESET_ID);
+      const flaggedPreset = flaggedId ? getPresetById(flaggedId) : null;
+      const suffix = flaggedPreset ? ` — ${flaggedPreset.name}` : "";
+      return `<option value="${escapeHTML(a.id)}">${escapeHTML(a.name + suffix)}</option>`;
+    })
+    .join("");
+
+  const content = `
+    <div class="form-group">
+      <label for="token-presets-tag-preset">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Picker.label"))}</label>
+      <select id="token-presets-tag-preset" name="presetId">${presetOptions}</select>
+    </div>
+    <div class="form-group">
+      <label for="token-presets-tag-folder">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.Folder.filterLabel"))}</label>
+      <select id="token-presets-tag-folder" name="folderId">${renderFolderFilterOptions()}</select>
+    </div>
+    <div class="form-group token-presets-actor-list">
+      <label for="token-presets-tag-actors">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.TagActors.actorsLabel"))}</label>
+      <select id="token-presets-tag-actors" name="actorIds" multiple size="14">${actorOptions}</select>
+      <p class="hint">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.TagActors.hint"))}</p>
+    </div>
+  `;
+
+  const dialogClass = "token-presets-tag-actors-dialog";
+  const renderHookId = Hooks.on("renderDialogV2", (app) => {
+    if (!app.options.classes?.includes(dialogClass)) return;
+    Hooks.off("renderDialogV2", renderHookId);
+    const root = app.element;
+    const folderSel = root.querySelector("select[name='folderId']");
+    const actorSel = root.querySelector("select[name='actorIds']");
+    if (!folderSel || !actorSel) return;
+    const filter = () => {
+      const allowed = actorIdsInFolderFilter(folderSel.value);
+      applyFolderFilterToList(actorSel, allowed, (opt) => opt.value || null);
+    };
+    folderSel.addEventListener("change", filter);
+  });
+
+  const { DialogV2 } = foundry.applications.api;
+  const result = await DialogV2.wait({
+    window: {
+      title: game.i18n.localize("TOKEN_PRESETS.TagActors.title"),
+      icon: "fa-solid fa-tag"
+    },
+    classes: [dialogClass],
+    content,
+    position: { width: 500 },
+    buttons: [
+      {
+        action: "apply",
+        label: game.i18n.localize("TOKEN_PRESETS.Picker.apply"),
+        icon: "fa-solid fa-check",
+        default: true,
+        callback: (_event, button) => {
+          const presetEl = button.form.querySelector("select[name='presetId']");
+          const actorEl = button.form.querySelector("select[name='actorIds']");
+          const actorIds = Array.from(actorEl?.selectedOptions ?? []).map((o) => o.value);
+          return { presetId: presetEl?.value ?? "", actorIds };
+        }
+      },
+      {
+        action: "cancel",
+        label: game.i18n.localize("TOKEN_PRESETS.Picker.cancel"),
+        icon: "fa-solid fa-xmark",
+        callback: () => null
+      }
+    ],
+    rejectClose: false
+  });
+  Hooks.off("renderDialogV2", renderHookId);
+
+  if (!result) return;
+  if (!result.actorIds?.length) {
+    ui.notifications?.warn(game.i18n.localize("TOKEN_PRESETS.TagActors.noActorsSelected"));
+    return;
+  }
+
+  const presets = game.settings.get(MODULE_ID, SETTINGS.PRESETS) ?? {};
+  const presetName = result.presetId
+    ? getPresetById(result.presetId)?.name ?? "?"
+    : game.i18n.localize("TOKEN_PRESETS.Picker.none");
+
+  let changed = 0;
+  for (const actorId of result.actorIds) {
+    const actor = game.actors.get(actorId);
+    if (!actor) continue;
+    if (result.presetId) await actor.setFlag(MODULE_ID, FLAGS.PRESET_ID, result.presetId);
+    else await actor.unsetFlag(MODULE_ID, FLAGS.PRESET_ID);
+    changed++;
+  }
+  if (result.presetId) await game.settings.set(MODULE_ID, SETTINGS.DEFAULT_PRESET_ID, result.presetId);
+  ui.notifications?.info(game.i18n.format("TOKEN_PRESETS.TagActors.done", { count: changed, preset: presetName }));
 }
 
 async function pushPresetForActor(actor) {

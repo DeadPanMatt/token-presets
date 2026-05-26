@@ -7,6 +7,60 @@ directly to tokens already on the canvas.
 
 ---
 
+## 0.13.0 - Landing window and folder filters
+
+The user-gear button in Token Controls now opens a small **Token
+Presets** hub window instead of jumping straight into a single action.
+From the hub you can:
+
+- **Manage Presets** - opens the preset manager.
+- **Apply Preset to Canvas Tokens** - opens the multi-token picker.
+- **Tag Actors with a Preset** - opens a new dialog where you can
+  multi-select actors from anywhere in your world and tag them all with
+  one preset in one go.
+
+The hub window stays open while you work, so you can run a few actions
+in sequence without re-opening it. Close it with the X when you're done.
+
+Both the canvas-tokens picker and the tag-actors picker also get a
+**Folder** drop-down at the top that mirrors your Actors sidebar
+hierarchy. Pick a folder and the list filters down to actors (or tokens
+of actors) in that folder or any of its sub-folders. "(Uncategorized)"
+catches anything without a folder; "All folders" is the default.
+
+---
+
+## 0.12.1 - Collapsible presets and delete confirmation
+
+Two small manager tweaks for users who keep a lot of presets:
+
+- **Each saved preset can now be collapsed** with a chevron next to its
+  name. Useful when you're tweaking one preset and don't want the others
+  filling the window. The header (name + reset + delete) stays visible
+  when collapsed.
+- **The delete button now asks for confirmation** before removing a
+  preset, with a "Delete preset 'X'? This cannot be undone." dialog.
+
+---
+
+## 0.12.0 - Renamed to "Token Presets" and a friendlier toolbar dialog
+
+The module's id and name changed from **Token Defaults** to **Token
+Presets**. There was already a separate "Token Defaults" module in
+Foundry's ecosystem, so the rename avoids confusion. If you're upgrading
+from a previous version, you'll need to re-tag any actors and re-create
+any presets - the world data was tied to the old module id.
+
+Alongside the rename, the toolbar button now opens a dialog that shows
+**every token currently on the scene** in a multi-select list, instead
+of silently operating on whatever's selected on the canvas. You can
+Ctrl/Cmd-click to toggle individual tokens, Shift-click for a range,
+Ctrl+A for everything. Whatever you already had selected on the canvas
+is pre-checked when the dialog opens, so the old workflow (select first,
+then click toolbar) still works.
+
+---
+
 ## 0.11.1 - Fix: dispositions (and other fields) not applying
 
 Presets created before the 0.11.0 control-style change carried a leftover

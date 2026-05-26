@@ -26,27 +26,69 @@
 .token-presets .preset {
   border: 1px solid var(--color-border-light-tertiary, #999);
   border-radius: 4px;
+}
+
+/* Builtin presets (locked) stay as fieldsets and use uniform padding */
+.token-presets fieldset.preset {
   padding: 0.5em 0.75em;
 }
 
-.token-presets .preset legend {
+.token-presets fieldset.preset legend {
   display: flex;
   gap: 0.5em;
   align-items: center;
   width: 100%;
 }
 
-.token-presets .preset legend input[type="text"] {
+/* User presets are <details> wrappers so each can be collapsed individually */
+.token-presets details.preset > .preset-header {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  padding: 0.4em 0.75em;
+  cursor: pointer;
+  list-style: none;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 4px 4px 0 0;
+}
+
+.token-presets details.preset:not([open]) > .preset-header {
+  border-radius: 4px;
+}
+
+.token-presets details.preset[open] > .preset-header {
+  border-bottom: 1px solid var(--color-border-light-tertiary, #999);
+}
+
+.token-presets details.preset > .preset-header::-webkit-details-marker {
+  display: none;
+}
+
+.token-presets details.preset > .preset-header > .preset-chevron {
+  flex: 0 0 auto;
+  transition: transform 0.15s;
+  opacity: 0.7;
+}
+
+.token-presets details.preset[open] > .preset-header > .preset-chevron {
+  transform: rotate(90deg);
+}
+
+.token-presets details.preset > .preset-header > input[type="text"] {
   flex: 1;
   min-width: 0;
 }
 
-.token-presets .preset legend button.icon {
+.token-presets details.preset > .preset-header > button.icon {
   flex: 0 0 auto;
   width: 28px;
   height: 28px;
   padding: 0;
   line-height: 1;
+}
+
+.token-presets details.preset > .preset-body {
+  padding: 0.5em 0.75em;
 }
 
 /* Section sub-panels within a preset */
@@ -176,15 +218,54 @@
 }
 
 /* Multi-token picker dialog (toolbar "Apply Token Preset…") */
-.token-presets-token-list select[multiple] {
+.token-presets-token-list select[multiple],
+.token-presets-actor-list select[multiple] {
   width: 100%;
-  min-height: 220px;
+  min-height: 240px;
   font-family: inherit;
 }
 
-.token-presets-token-list .hint {
+.token-presets-token-list .hint,
+.token-presets-actor-list .hint {
   font-size: 0.85em;
   opacity: 0.7;
   margin: 0.4em 0 0 0;
   text-align: left;
+}
+
+/* Landing page (ApplicationV2 window): stacked action buttons. */
+.token-presets-landing-app .landing-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 0.25em 0;
+}
+
+.token-presets-landing-app .landing-prompt {
+  text-align: center;
+  font-style: italic;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.token-presets-landing-app .landing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.token-presets-landing-app .landing-actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0.5em 0.85em;
+  width: 100%;
+}
+
+.token-presets-landing-app .landing-actions button i {
+  flex: 0 0 auto;
+  width: 1.2em;
+  text-align: center;
 }

@@ -172,9 +172,22 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onDelete(_event, target) {
-    this.#captureFormState();
     const id = target?.dataset?.presetId;
-    if (id) delete this.#presets[id];
+    if (!id) return;
+    const preset = this.#presets[id];
+    if (!preset) return;
+
+    const safeName = Handlebars.escapeExpression(preset.name);
+    const { DialogV2 } = foundry.applications.api;
+    const confirmed = await DialogV2.confirm({
+      window: { title: game.i18n.localize("TOKEN_PRESETS.Manager.deleteConfirmTitle") },
+      content: `<p>${game.i18n.format("TOKEN_PRESETS.Manager.deleteConfirm", { name: safeName })}</p>`,
+      rejectClose: false
+    }).catch(() => false);
+    if (!confirmed) return;
+
+    this.#captureFormState();
+    delete this.#presets[id];
     this.render();
   }
 

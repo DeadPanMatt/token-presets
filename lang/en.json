@@ -10,6 +10,8 @@
   "TOKEN_PRESETS.Manager.applyDefaults": "Apply Foundry defaults to this preset",
   "TOKEN_PRESETS.Manager.applyDefaultsConfirmTitle": "Apply Foundry Defaults",
   "TOKEN_PRESETS.Manager.applyDefaultsConfirm": "Overwrite the field values of preset \"{name}\" with the Foundry defaults? Existing values for this preset will be lost.",
+  "TOKEN_PRESETS.Manager.deleteConfirmTitle": "Delete Preset",
+  "TOKEN_PRESETS.Manager.deleteConfirm": "Delete preset \"{name}\"? This cannot be undone.",
 
   "TOKEN_PRESETS.Menu.presetManager.name": "Token Default Presets",
   "TOKEN_PRESETS.Menu.presetManager.label": "Manage Presets",
@@ -40,6 +42,24 @@
   "TOKEN_PRESETS.Context.pushFolder": "Apply Preset to Placed Tokens (Folder)",
 
   "TOKEN_PRESETS.Tool.applyToSelection": "Apply Token Preset…",
+  "TOKEN_PRESETS.Tool.openLanding": "Token Presets…",
+
+  "TOKEN_PRESETS.Landing.title": "Token Presets",
+  "TOKEN_PRESETS.Landing.prompt": "What would you like to do?",
+  "TOKEN_PRESETS.Landing.manage": "Manage Presets",
+  "TOKEN_PRESETS.Landing.applyTokens": "Apply Preset to Canvas Tokens",
+  "TOKEN_PRESETS.Landing.tagActors": "Tag Actors with a Preset",
+
+  "TOKEN_PRESETS.TagActors.title": "Tag Actors with a Preset",
+  "TOKEN_PRESETS.TagActors.actorsLabel": "Actors (current tag shown after the name)",
+  "TOKEN_PRESETS.TagActors.hint": "Ctrl/Cmd-click to toggle, Shift-click for a range, Ctrl+A selects all.",
+  "TOKEN_PRESETS.TagActors.noActors": "No actors in this world.",
+  "TOKEN_PRESETS.TagActors.noActorsSelected": "Select one or more actors before applying.",
+  "TOKEN_PRESETS.TagActors.done": "Tagged {count} actor(s) with preset \"{preset}\".",
+
+  "TOKEN_PRESETS.Folder.filterLabel": "Folder",
+  "TOKEN_PRESETS.Folder.all": "All folders",
+  "TOKEN_PRESETS.Folder.uncategorized": "(Uncategorized)",
 
   "TOKEN_PRESETS.Push.confirmTitle": "Apply Preset to Placed Tokens",
   "TOKEN_PRESETS.Push.confirmActor": "Apply preset \"{preset}\" to {count} placed token(s) of \"{actor}\"?",
@@ -66,7 +86,7 @@
 
   "TOKEN_PRESETS.Field.Scale": "Scale (Ratio)",
   "TOKEN_PRESETS.Field.tint": "Tint Color",
-  "TOKEN_PRESETS.Field.alpha": "Alpha (Opacity)",
+  "TOKEN_PRESETS.Field.alpha": "Opacity",
   "TOKEN_PRESETS.Field.rotation": "Rotation",
   "TOKEN_PRESETS.Field.mirrorH": "Mirror Horizontal",
   "TOKEN_PRESETS.Field.mirrorV": "Mirror Vertical",

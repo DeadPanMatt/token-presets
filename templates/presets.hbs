@@ -23,6 +23,16 @@
             <input type="checkbox" {{#if f.value}}checked{{/if}} disabled/>
             <span>{{localize f.label}}</span>
           </label>
+          {{else if (eq f.type "flags")}}
+          <span class="field-label">{{localize f.label}}</span>
+          <div class="flag-list">
+            {{#each f.choices as |c|}}
+            <label class="bool">
+              <input type="checkbox" {{#if c.selected}}checked{{/if}} disabled/>
+              <span>{{c.label}}</span>
+            </label>
+            {{/each}}
+          </div>
           {{else}}
           <span class="field-label">{{localize f.label}}</span>
           {{#if (eq f.type "select")}}
@@ -47,7 +57,7 @@
   {{/if}}
 
   {{#each userPresets as |p|}}
-  <details class="preset" data-preset-id="{{p.id}}" open>
+  <details class="preset" data-preset-id="{{p.id}}" {{#if p.isOpen}}open{{/if}}>
     <summary class="preset-header">
       <i class="fa-solid fa-chevron-right preset-chevron"></i>
       <input type="text" name="presets.{{p.id}}.name" value="{{p.name}}" placeholder="Preset name"/>
@@ -69,6 +79,16 @@
             <input type="checkbox" name="presets.{{p.id}}.fields.{{f.key}}.value" {{#if f.value}}checked{{/if}}/>
             <span>{{localize f.label}}</span>
           </label>
+          {{else if (eq f.type "flags")}}
+          <span class="field-label">{{localize f.label}}</span>
+          <div class="flag-list">
+            {{#each f.choices as |c|}}
+            <label class="bool">
+              <input type="checkbox" name="presets.{{p.id}}.fields.{{f.key}}.flags.{{c.name}}" {{#if c.selected}}checked{{/if}}/>
+              <span>{{c.label}}</span>
+            </label>
+            {{/each}}
+          </div>
           {{else}}
           <span class="field-label">{{localize f.label}}</span>
           {{#if (eq f.type "select")}}

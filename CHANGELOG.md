@@ -7,6 +7,25 @@ directly to tokens already on the canvas.
 
 ---
 
+## 0.14.0 - Filter canvas tokens by disposition, link state, or visibility
+
+The "Apply Preset to Canvas Tokens" dialog now uses a **token-attribute
+filter** on its left pane instead of the folder tree. Folders don't
+really apply to tokens already placed on the scene, so the filter
+options are now things that *do* apply to placed tokens:
+
+- **Disposition:** Hostile / Neutral / Friendly / Secret
+- **Link State:** Linked / Unlinked
+- **Visibility:** Visible / Hidden
+
+Click one to filter, click "All Tokens" at the top to clear. Combines
+with the search box on the right as before.
+
+The "Tag Actors with a Preset" dialog keeps its folder tree, since
+that one really is operating on actors.
+
+---
+
 ## 0.13.5 - Fix: hint text in the filter dialogs overflowing
 
 The little grey hint paragraph under the actor/token list ("Ctrl-click

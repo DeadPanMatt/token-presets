@@ -44,6 +44,9 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Working copy of presets edited in the form. Persisted on submit. */
   #presets = null;
 
+  /** Which preset rows are currently expanded. Empty on first open = all collapsed. */
+  #expandedIds = new Set();
+
   async _prepareContext(_options) {
     if (!this.#presets) {
       const stored = game.settings.get(MODULE_ID, SETTINGS.PRESETS) ?? {};
@@ -64,6 +67,7 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     const userPresets = Object.values(this.#presets).map((p) => ({
       id: p.id,
       name: p.name,
+      isOpen: this.#expandedIds.has(p.id),
       sections: this.#prepareSections(p)
     }));
     return {
@@ -93,6 +97,27 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
           value: val,
           label: name,
           selected: val === f.value
+        }));
+      } else if (def.type === "flags") {
+        // V14 stores ring.effects as an array of effect-key strings. We keep
+        // the FIELD_DEFS `options` map (NAME → bitValue) so we know which
+        // names are user-toggleable, but the preset value itself is the array.
+        // Legacy bitmask integers (saved during early dev of this feature) are
+        // up-converted on read.
+        const flagsMap = def.options?.() ?? {};
+        let current = f.value;
+        if (typeof current === "number") {
+          const bitmask = current;
+          current = Object.entries(flagsMap)
+            .filter(([, bit]) => (bitmask & bit) === bit)
+            .map(([n]) => n);
+        }
+        if (!Array.isArray(current)) current = [];
+        choices = Object.entries(flagsMap).map(([name, bit]) => ({
+          name,
+          bit,
+          label: localizeFlagLabel(name),
+          selected: current.includes(name)
         }));
       }
 
@@ -132,6 +157,15 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#applyFormData(data);
   }
 
+  /** Capture which user-preset rows are currently open so a re-render preserves them. */
+  #captureExpandedState() {
+    if (!this.element) return;
+    this.#expandedIds.clear();
+    for (const details of this.element.querySelectorAll("details.preset[data-preset-id]")) {
+      if (details.open) this.#expandedIds.add(details.dataset.presetId);
+    }
+  }
+
   #applyFormData(data) {
     const expanded = foundry.utils.expandObject(data ?? {});
     const formPresets = expanded.presets ?? {};
@@ -151,6 +185,20 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
           continue;
         }
 
+        if (def.type === "flags") {
+          // Each option comes back as its own checkbox under `.flags.<NAME>`.
+          // Collect the checked names into an array — that matches V14's
+          // ring.effects shape (Set/Array of effect-key strings).
+          const flagsMap = def.options?.() ?? {};
+          const submitted = f.flags ?? {};
+          const selected = [];
+          for (const name of Object.keys(flagsMap)) {
+            if (submitted[name]) selected.push(name);
+          }
+          target.fields[fk].value = selected;
+          continue;
+        }
+
         if (f.value !== undefined) {
           let v = f.value;
           if (def.type === "select" || def.type === "number") {
@@ -165,9 +213,12 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onCreate(_event, _target) {
+    this.#captureExpandedState();
     this.#captureFormState();
     const preset = emptyPreset(game.i18n.localize("TOKEN_PRESETS.Manager.newDefaultName"));
     this.#presets[preset.id] = preset;
+    // Open the new preset so the user can start editing it right away.
+    this.#expandedIds.add(preset.id);
     this.render();
   }
 
@@ -186,8 +237,10 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     }).catch(() => false);
     if (!confirmed) return;
 
+    this.#captureExpandedState();
     this.#captureFormState();
     delete this.#presets[id];
+    this.#expandedIds.delete(id);
     this.render();
   }
 
@@ -204,10 +257,13 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     }).catch(() => false);
     if (!confirmed) return;
 
+    this.#captureExpandedState();
     this.#captureFormState();
     const defaults = BUILTIN_PRESETS[BUILTIN_FOUNDRY_DEFAULT_ID];
     if (!defaults?.fields) return;
     this.#presets[id].fields = foundry.utils.deepClone(defaults.fields);
+    // Keep the affected preset expanded so the user sees the values that just changed.
+    this.#expandedIds.add(id);
     this.render();
   }
 
@@ -216,4 +272,27 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MODULE_ID, SETTINGS.PRESETS, this.#presets);
     ui.actors?.render();
   }
+}
+
+/**
+ * Resolve a user-facing label for a ring-effect bit-flag key.
+ * Foundry has renamed some labels across versions while keeping the constant
+ * keys stable (notably V14's ENABLED → "Spectral Pulse"). Probe the i18n keys
+ * Foundry registers; if none are found, pretty-print the SHOUTY_CASE constant.
+ */
+function localizeFlagLabel(name) {
+  const candidates = [
+    `TOKEN.RING.EFFECTS.${name}`,   // confirmed V14 key
+    `TOKEN.RING_EFFECTS.${name}`,
+    `TOKEN.RingEffects.${name}`,
+    `TOKEN_RING.EFFECTS.${name}`,
+    `TOKEN_RING.effects.${name}`,
+    `TOKEN.Ring.Effects.${name}`,
+    `CANVAS.TokenRing.Effects.${name}`
+  ];
+  for (const key of candidates) {
+    const localized = game.i18n.localize(key);
+    if (localized && localized !== key) return localized;
+  }
+  return name.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }

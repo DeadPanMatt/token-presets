@@ -10,13 +10,35 @@ export const FLAGS = {
 };
 
 /**
- * Section ids drive the collapsible groups in the preset manager UI.
+ * Section IDs drive the collapsible groups in the preset manager UI.
  * Order here determines display order.
  */
 export const SECTIONS = {
   identity:   { label: "TOKEN_PRESETS.Section.identity" },
-  appearance: { label: "TOKEN_PRESETS.Section.appearance" }
+  appearance: { label: "TOKEN_PRESETS.Section.appearance" },
+  ring:       { label: "TOKEN_PRESETS.Section.ring" }
 };
+
+/**
+ * Live source for the token-ring effect flags. Returns a { NAME: bitValue }
+ * map suitable for FIELD_DEFS `options`. Resolved at render time so module
+ * load order doesn't matter.
+ *
+ * Excludes DISABLED (bit 0) and ENABLED (bit 1)
+ * ring rendering states, not user-toggleable visual effects. 
+ */
+export function getRingEffectFlags() {
+  const ringClass =
+    foundry?.canvas?.placeables?.tokens?.TokenRing ??
+    CONFIG?.Token?.ring?.ringClass;
+  const effects = ringClass?.effects ?? {};
+  const HIDDEN = new Set(["DISABLED", "ENABLED"]);
+  return Object.fromEntries(
+    Object.entries(effects).filter(
+      ([k, v]) => Number.isInteger(v) && v > 0 && !HIDDEN.has(k)
+    )
+  );
+}
 
 // Mirror fields don't map to a single path — they sign-flip whatever
 // scaleX/scaleY is, so they compose with the `scale` field.
@@ -127,6 +149,47 @@ export const FIELD_DEFS = {
     section: "appearance",
     path: "lockRotation",
     default: false
+  },
+
+  // --- Dynamic Token Ring ---
+  ringEnabled: {
+    label: "TOKEN_PRESETS.Field.ringEnabled",
+    type: "boolean",
+    section: "ring",
+    path: "ring.enabled",
+    default: false
+  },
+  ringColor: {
+    label: "TOKEN_PRESETS.Field.ringColor",
+    type: "color",
+    section: "ring",
+    path: "ring.colors.ring",
+    default: ""
+  },
+  ringBackground: {
+    label: "TOKEN_PRESETS.Field.ringBackground",
+    type: "color",
+    section: "ring",
+    path: "ring.colors.background",
+    default: ""
+  },
+  ringEffects: {
+    label: "TOKEN_PRESETS.Field.ringEffects",
+    type: "flags",
+    section: "ring",
+    path: "ring.effects",
+    options: getRingEffectFlags,
+    default: []
+  },
+  ringSubjectScale: {
+    label: "TOKEN_PRESETS.Field.ringSubjectScale",
+    type: "number",
+    section: "ring",
+    path: "ring.subject.scale",
+    default: 1,
+    min: 0.5,
+    max: 3,
+    step: 0.02
   }
 };
 
@@ -165,7 +228,13 @@ export const BUILTIN_PRESETS = {
       rotation:            { enabled: true, value: 0 },
       mirrorH:             { enabled: true, value: false },
       mirrorV:             { enabled: true, value: false },
-      lockRotation:        { enabled: true, value: false }
+      lockRotation:        { enabled: true, value: false },
+      // Dynamic Token Ring — Foundry's schema defaults.
+      ringEnabled:         { enabled: true, value: false },
+      ringColor:           { enabled: true, value: "" },
+      ringBackground:      { enabled: true, value: "" },
+      ringEffects:         { enabled: true, value: [] },
+      ringSubjectScale:    { enabled: true, value: 1 }
     }
   }
 };

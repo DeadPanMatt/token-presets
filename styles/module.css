@@ -91,24 +91,28 @@
   padding: 0.5em 0.75em;
 }
 
-/* Section sub-panels within a preset */
+/* Section sub-panels within a preset — Foundry-native fieldset look:
+   full rounded border with a header at the top that visually anchors the group. */
 .token-presets .preset .section {
-  margin: 0.25em 0;
-  border-top: 1px solid var(--color-border-light-tertiary, #999);
-  padding-top: 0.25em;
+  margin: 0.5em 0;
+  border: 1px solid var(--color-border-light-tertiary, #999);
+  border-radius: 6px;
+  padding: 0 0.75em 0.5em;
+  background: rgba(0, 0, 0, 0.025);
 }
 
 .token-presets .preset .section:first-of-type {
-  border-top: none;
-  padding-top: 0;
+  margin-top: 0.25em;
 }
 
 .token-presets .section-toggle {
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   list-style: none;
   user-select: none;
-  padding: 0.2em 0;
+  padding: 0.4em 0;
+  margin: 0 -0.25em 0.4em;
+  border-bottom: 1px solid var(--color-border-light-tertiary, #aaa);
 }
 
 .token-presets .section-toggle::-webkit-details-marker {
@@ -151,6 +155,27 @@
 
 .token-presets .field .bool input[type="checkbox"] {
   flex: 0 0 auto;
+}
+
+/* Flags field: label on its own line, checkboxes in a responsive grid below.
+   Auto-fit columns keep the checkbox group compact regardless of dialog width. */
+.token-presets .field.flags {
+  grid-template-columns: 1fr;
+  gap: 0.25em;
+}
+
+.token-presets .field.flags .field-label {
+  font-weight: 500;
+}
+
+.token-presets .field.flags .flag-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.15em 0.75em;
+}
+
+.token-presets .field.flags .flag-list .bool {
+  margin: 0;
 }
 
 /* "View Foundry Defaults" disclosure */
@@ -295,13 +320,93 @@
   min-width: 0;
 }
 
-.token-presets-explorer .token-presets-folder-tree-container {
-  flex: 0 1 240px;
-  min-width: 180px;
+.token-presets-explorer .token-presets-folder-tree-container,
+.token-presets-explorer .token-presets-token-filter-container {
+  /* Fixed 200px starting width; don't grow into available dialog space.
+     The splitter overrides this with an inline style when dragged. */
+  flex: 0 0 200px;
+  overflow: auto;
+  min-width: 160px;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
   margin: 0;
 }
+
+/* Token-attribute filter pane (apply-to-canvas dialog) */
+.token-presets-token-filter-container {
+  border: 1px solid var(--color-border-light-tertiary, #999);
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.token-presets-token-filter-container .filter-header {
+  margin-bottom: 0.3em;
+}
+
+.token-presets-token-filter-container .filter-header label {
+  margin: 0;
+  font-weight: 500;
+}
+
+.token-presets-token-filter-container .filter-list {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 140px;
+  min-height: 350px;
+  border: 1px solid var(--color-border-light-tertiary, #aaa);
+  border-radius: 3px;
+  padding: 0.2em;
+}
+
+.token-presets-token-filter-container .filter-group-label {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+  margin: 0.5em 0.3em 0.15em;
+}
+
+.token-presets-token-filter-container .filter-group-label:first-child {
+  margin-top: 0.15em;
+}
+
+.token-presets-token-filter-container .filter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.token-presets-token-filter-container .filter-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.token-presets-token-filter-container .filter-item.selected {
+  background: rgba(70, 130, 200, 0.22);
+  font-weight: 500;
+}
+
+.token-presets-token-filter-container .filter-item i {
+  flex: 0 0 auto;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Disposition icon tints (scoped to the filter pane) */
+.token-presets-token-filter-container .disposition-hostile { color: #c0392b; }
+.token-presets-token-filter-container .disposition-neutral { color: #b8a73b; }
+.token-presets-token-filter-container .disposition-friendly { color: #2e8b57; }
+.token-presets-token-filter-container .disposition-secret { color: #8a4a8c; }
 
 .token-presets-explorer .token-presets-folder-tree-container .folder-tree {
   flex: 1;
@@ -368,7 +473,7 @@
 .token-presets-folder-tree-container {
   border: 1px solid var(--color-border-light-tertiary, #999);
   border-radius: 4px;
-  padding: 0.4em;
+  padding: 5px;
 }
 
 .token-presets-folder-tree-container .folder-tree-header {
@@ -382,28 +487,35 @@
   margin: 0;
 }
 
-.application.token-presets-multi-picker-dialog .new-folder-button,
-.application.token-presets-tag-actors-dialog .new-folder-button {
+.token-presets-folder-tree-container 
+.folder-tree-header button.new-folder-button {
+  --button-background-color: #0c0601;
+  --button-hover-background-color: #2a1810;
+  --button-text-color: #bea38f;
+  --button-hover-text-color: #ffffff;
+  --button-border-color: #333;
+
+  color: #bea38f;
+  background: #0c0601;
+  border: 1px solid #333;
+  box-shadow: none;
+  width: auto;
   flex: 0 0 auto;
   font-size: 0.85em;
-  color: #bea38f !important;
-  background: #0c0601 !important;
-  background-color: #0c0601 !important;
-  border-color: #333 !important;
   padding: 0.15em 0.5em;
-  width: auto;
 }
 
-.application.token-presets-multi-picker-dialog .new-folder-button i,
-.application.token-presets-tag-actors-dialog .new-folder-button i {
-  color: inherit !important;
+.token-presets-folder-tree-container 
+.folder-tree-header button.new-folder-button:hover {
+  color: #ffffff;
+  background: #2a1810;
+  border-color: #555;
+  box-shadow: none;
 }
 
-.application.token-presets-multi-picker-dialog .new-folder-button:hover,
-.application.token-presets-tag-actors-dialog .new-folder-button:hover {
-  color: #ffffff !important;
-  background: #2a1810 !important;
-  background-color: #2a1810 !important;
+.token-presets-folder-tree-container 
+.folder-tree-header button.new-folder-button i {
+  color: inherit;
 }
 
 .token-presets-folder-tree-container .folder-tree {
@@ -485,10 +597,10 @@
 .token-presets-folder-ctxmenu {
   position: fixed;
   z-index: 10000;
-  background: var(--color-bg, #f0f0e0);
+  background: var(--color-bg, #31160f);
   border: 1px solid var(--color-border-dark, #444);
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(11, 11, 11, 0.35);
   padding: 0.25em;
   min-width: 160px;
 }
@@ -505,7 +617,8 @@
   text-align: left;
   font-family: inherit;
   font-size: inherit;
-  color: inherit;
+  color: #d1b6a1;
+  Background: #251406;
   border-radius: 3px;
 }
 

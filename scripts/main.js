@@ -77,6 +77,18 @@ function applyField(def, value, updates, snapshot, doc) {
   let writeValue = value;
   if ((def.type === "color" || def.type === "image") && writeValue === "") {
     writeValue = null;
+  } else if (def.type === "flags") {
+    // V14 ring.effects expects a Set/Array of effect-key strings. Convert any
+    // legacy bitmask integer (from presets saved during early dev) up to an
+    // array so apply doesn't trip schema validation.
+    if (typeof writeValue === "number") {
+      const flagsMap = def.options?.() ?? {};
+      const bitmask = writeValue;
+      writeValue = Object.entries(flagsMap)
+        .filter(([, bit]) => (bitmask & bit) === bit)
+        .map(([n]) => n);
+    }
+    if (!Array.isArray(writeValue)) writeValue = [];
   }
   for (const path of fieldPaths(def)) {
     if (snapshot) snapshot[path] = foundry.utils.getProperty(doc, path);
@@ -322,8 +334,12 @@ async function applyPresetToSelectedTokens() {
   const sortedTokens = tokens
     .map((td) => ({
       id: td.id,
+      actorId: td.actorId,
       name: td.name || td.actor?.name || game.i18n.localize("TOKEN_PRESETS.MultiPicker.unnamed"),
-      actorName: td.actor?.name
+      actorName: td.actor?.name,
+      disposition: td.disposition ?? 0,
+      actorLink: !!td.actorLink,
+      hidden: !!td.hidden
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -344,7 +360,12 @@ async function applyPresetToSelectedTokens() {
     .map((t) => {
       const label =
         t.actorName && t.actorName !== t.name ? `${t.name} (${t.actorName})` : t.name;
-      return `<option value="${escapeHTML(t.id)}" data-actor-id="${escapeHTML(t.actorId ?? "")}"${preselected.has(t.id) ? " selected" : ""}>${escapeHTML(label)}</option>`;
+      return `<option value="${escapeHTML(t.id)}"
+        data-actor-id="${escapeHTML(t.actorId ?? "")}"
+        data-disposition="${t.disposition}"
+        data-actor-link="${t.actorLink}"
+        data-hidden="${t.hidden}"
+        ${preselected.has(t.id) ? "selected" : ""}>${escapeHTML(label)}</option>`;
     })
     .join("");
 
@@ -354,7 +375,7 @@ async function applyPresetToSelectedTokens() {
       <select id="token-presets-multi-preset" name="presetId">${presetOptions}</select>
     </div>
     <div class="token-presets-explorer">
-      ${renderFolderPickerBlock()}
+      ${renderTokenFilterBlock()}
       <div class="explorer-splitter" aria-hidden="true"></div>
       <div class="form-group token-presets-token-list explorer-list-pane">
         <label for="token-presets-multi-tokens">${escapeHTML(game.i18n.localize("TOKEN_PRESETS.MultiPicker.tokensLabel"))}</label>
@@ -366,7 +387,7 @@ async function applyPresetToSelectedTokens() {
   `;
 
   const dialogClass = "token-presets-multi-picker-dialog";
-  let teardownTree = () => {};
+  let teardownFilter = () => {};
   let teardownSplitter = () => {};
   const renderHookId = Hooks.on("renderDialogV2", (app) => {
     if (!app.options.classes?.includes(dialogClass)) return;
@@ -374,26 +395,23 @@ async function applyPresetToSelectedTokens() {
     const root = app.element;
     const tokenSel = root.querySelector("select[name='tokenIds']");
     const searchEl = root.querySelector("input.token-presets-search");
-    const treeContainer = root.querySelector(".token-presets-folder-tree-container");
+    const filterContainer = root.querySelector(".token-presets-token-filter-container");
     const splitterEl = root.querySelector(".explorer-splitter");
     if (!tokenSel) return;
 
-    let folderId = "";
+    let tokenFilter = "";
     let searchTerm = "";
-    const reapply = () => {
-      const allowed = actorIdsInFolderFilter(folderId);
-      applyCombinedFilter(tokenSel, allowed, searchTerm, (opt) => opt.dataset.actorId || null);
-    };
+    const reapply = () => applyTokenFilterAndSearch(tokenSel, tokenFilter, searchTerm);
 
-    teardownTree = setupFolderTreeHandlers(root, (newFolderId) => {
-      folderId = newFolderId;
+    teardownFilter = setupTokenFilterHandlers(root, (newFilter) => {
+      tokenFilter = newFilter;
       reapply();
     });
     searchEl?.addEventListener("input", () => {
       searchTerm = searchEl.value;
       reapply();
     });
-    teardownSplitter = setupSplitter(treeContainer, splitterEl);
+    teardownSplitter = setupSplitter(filterContainer, splitterEl);
   });
 
   const { DialogV2 } = foundry.applications.api;
@@ -429,7 +447,7 @@ async function applyPresetToSelectedTokens() {
     rejectClose: false
   });
   Hooks.off("renderDialogV2", renderHookId);
-  teardownTree();
+  teardownFilter();
   teardownSplitter();
 
   if (!result) return;
@@ -593,6 +611,94 @@ function renderFolderTreeHTML(selectedId, expandedIds) {
     row({ id: "__uncategorized__", name: game.i18n.localize("TOKEN_PRESETS.Folder.uncategorized"), depth: 0, hasChildren: false, icon: "fa-circle-question" }),
     walk(null, 0)
   ].join("");
+}
+
+/* ------------------------------------------------------------------------ */
+/* Token-attribute filter (used by the "Apply Preset to Canvas Tokens"      */
+/* dialog instead of the folder filter — placed tokens don't have folders). */
+/* ------------------------------------------------------------------------ */
+
+function renderTokenFilterBlock() {
+  const t = (k) => escapeHTML(game.i18n.localize(`TOKEN_PRESETS.TokenFilter.${k}`));
+  return `
+    <div class="form-group token-presets-token-filter-container">
+      <div class="filter-header">
+        <label>${t("label")}</label>
+      </div>
+      <div class="filter-list">
+        <button type="button" class="filter-item selected" data-filter="">
+          <i class="fa-solid fa-asterisk"></i><span>${t("all")}</span>
+        </button>
+        <div class="filter-group-label">${t("dispositionLabel")}</div>
+        <button type="button" class="filter-item" data-filter="disposition:-1">
+          <i class="fa-solid fa-skull disposition-hostile"></i><span>${t("hostile")}</span>
+        </button>
+        <button type="button" class="filter-item" data-filter="disposition:0">
+          <i class="fa-solid fa-circle disposition-neutral"></i><span>${t("neutral")}</span>
+        </button>
+        <button type="button" class="filter-item" data-filter="disposition:1">
+          <i class="fa-solid fa-handshake disposition-friendly"></i><span>${t("friendly")}</span>
+        </button>
+        <button type="button" class="filter-item" data-filter="disposition:-2">
+          <i class="fa-solid fa-mask disposition-secret"></i><span>${t("secret")}</span>
+        </button>
+        <div class="filter-group-label">${t("linkLabel")}</div>
+        <button type="button" class="filter-item" data-filter="linked">
+          <i class="fa-solid fa-link"></i><span>${t("linked")}</span>
+        </button>
+        <button type="button" class="filter-item" data-filter="unlinked">
+          <i class="fa-solid fa-link-slash"></i><span>${t("unlinked")}</span>
+        </button>
+        <div class="filter-group-label">${t("visibilityLabel")}</div>
+        <button type="button" class="filter-item" data-filter="visible">
+          <i class="fa-solid fa-eye"></i><span>${t("visible")}</span>
+        </button>
+        <button type="button" class="filter-item" data-filter="hidden">
+          <i class="fa-solid fa-eye-slash"></i><span>${t("hidden")}</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function setupTokenFilterHandlers(rootEl, onChangeFilter) {
+  const container = rootEl.querySelector(".token-presets-token-filter-container");
+  if (!container) return () => {};
+  const onClick = (event) => {
+    const btn = event.target.closest(".filter-item");
+    if (!btn || !container.contains(btn)) return;
+    container.querySelectorAll(".filter-item.selected").forEach((b) => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    onChangeFilter(btn.dataset.filter ?? "");
+  };
+  container.addEventListener("click", onClick);
+  return () => container.removeEventListener("click", onClick);
+}
+
+/** Does a token option's data-* match the given filter id? */
+function tokenOptionMatchesFilter(option, filter) {
+  if (!filter) return true;
+  if (filter.startsWith("disposition:")) {
+    return Number(option.dataset.disposition) === Number(filter.split(":")[1]);
+  }
+  if (filter === "linked") return option.dataset.actorLink === "true";
+  if (filter === "unlinked") return option.dataset.actorLink !== "true";
+  if (filter === "visible") return option.dataset.hidden !== "true";
+  if (filter === "hidden") return option.dataset.hidden === "true";
+  return true;
+}
+
+/** Combined token-filter + search filter for the apply-tokens dialog. */
+function applyTokenFilterAndSearch(listEl, filter, searchTerm) {
+  const needle = (searchTerm || "").toLowerCase().trim();
+  for (const option of listEl.options) {
+    const filterOk = tokenOptionMatchesFilter(option, filter);
+    const searchOk = !needle || option.textContent.toLowerCase().includes(needle);
+    const visible = filterOk && searchOk;
+    option.hidden = !visible;
+    option.disabled = !visible;
+    if (!visible) option.selected = false;
+  }
 }
 
 /** Tree + new-folder button block for embedding into a dialog's content. */

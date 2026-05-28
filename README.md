@@ -19,6 +19,10 @@ Each preset can set any combination of:
 - Scale, opacity, rotation
 - Mirror horizontally / vertically
 - Tint colour
+- Dynamic Token Ring - enable on / off, ring and background colours,
+  any combination of ring effects (Ring Pulse, Ring Gradient,
+  Background Wave, Spectral Pulse, Color Over Subject), and a
+  subject-scale slider
 
 You can make as many presets as you like.
 
@@ -41,11 +45,19 @@ You're ready.
 
 ---
 
-## Making your first preset
+## Making a preset
 
 1. Go to **Game Settings → Configure Settings**.
 2. Find **Token Presets** in the list and click **Manage Presets**.
 3. Click **+ New Preset** at the bottom.
+4. Give it a name (like *Hostile Monster*) and set the values you want.
+5. Click **Save**.
+
+**Or**
+
+1. Under **Token Controls** Click on the user / Gear icon.
+2. Click **Manage / create Presets**.
+3. Click **+ New Preset**
 4. Give it a name (like *Hostile Monster*) and set the values you want.
 5. Click **Save**.
 
@@ -62,7 +74,9 @@ and every time you drop it onto a scene the preset values are applied
 automatically.
 
 If you don't want to use a preset for a particular actor, pick
-**- None -** instead.
+**- None -** instead. You can always tag the actor with a preset
+later via right-click in the sidebar, or via the **Tag Actors with
+a Preset** form in the Token Presets hub - see the next section.
 
 ---
 
@@ -77,16 +91,36 @@ To do a whole folder of actors at once, right-click the folder and pick
 actor in the folder (and any sub-folders) in one go. It asks for
 confirmation first so you know how many actors will be affected.
 
+**Or**, to tag many actors at once across folders, via the Token
+Presets hub:
+
+1. Under **Token Controls** click on the user / Gear icon.
+2. Click **Tag Actors with a Preset**.
+3. *(Optional)* Click a folder in the left tree to narrow the list,
+   or type in the search box to filter by name.
+4. Click an actor to select. Ctrl-click for multi-select; Shift-click
+   for a range; Ctrl+A for everything visible.
+5. Pick a preset from the dropdown at the top.
+6. Click **Apply** - every selected actor is tagged in one go.
+
 ---
 
 ## Using a preset on tokens already on the scene
 
 Three ways, depending on what you want to update.
 
-**Just these tokens right now.** Select one or more tokens on the canvas
-(shift-click or drag a box to multi-select), then click the **user-gear
-icon** in the left-hand toolbar under Token Controls. Pick a preset,
-click Apply, done.
+**Just these tokens, right now**, via the Token Presets hub:
+
+1. Under **Token Controls** click on the user / Gear icon.
+2. Click **Apply Preset to Canvas Tokens**.
+3. *(Optional)* Use the filter buttons on the left (Disposition /
+   Link State / Visibility) and/or the search box to narrow the
+   list of tokens.
+4. Tick the tokens you want. Anything you already had selected on
+   the canvas is pre-ticked, so "select first, then click" still
+   works.
+5. Pick a preset from the dropdown at the top.
+6. Click **Apply**.
 
 **Every token of one actor.** Right-click the actor in the sidebar and
 choose **Apply Preset to Placed Tokens**. This finds every copy of that
@@ -125,12 +159,14 @@ You can't edit it, but you can:
 
 ## A few useful tips
 
-- **Sections fold up.** Each preset has Identity and Appearance
-  sections. Click a section header to collapse it if it's in the way.
+- **Sections fold up.** Each preset has Identity, Appearance, and
+  Dynamic Token Ring sections. Click a section header to collapse it
+  if it's in the way.
 - **A preset applies *every* setting it has.** There's no "leave this
   alone" option - when you apply a preset, all of its values get written
   to the token. So if you want a preset that only changes disposition,
-  make sure the other values are also what you'd want (I recomend applyingFoundries defaults first).
+  make sure the other values are also what you'd want (I recommend
+  applying Foundry's defaults first).
 - **Make presets per actor type.** Most people end up with a few
   templates: one for monsters, one for friendly NPCs, one for the
   party. Pick the right one when you create the actor and you've saved
@@ -140,15 +176,16 @@ You can't edit it, but you can:
 
 ## Future plans
 
--**Dynamic Token Ring.** Add Dynamic Token Ring settings to preset menu.
--**Vission.** Add Vision controls (Basic, Detection and Advcnaced) to the preset menu 
+- **Vision.** Add Vision controls (Basic, Detection, and Advanced) to
+  the preset menu.
 
 ## Found a bug? Have an idea?
 
 Open an issue at
 [github.com/DeadPanMatt/token-presets/issues][issues] and let me know
 what happened. The more detail the better - what you were trying to do,
-what you saw instead, your Foundry version, and your game system (although this shou not really matter).
+what you saw instead, your Foundry version, and your game system
+(although that shouldn't really matter).
 
 [issues]: https://github.com/DeadPanMatt/token-presets/issues
 

@@ -1,5 +1,3 @@
-/* Manager window: make the body a flex column so .presets can scroll
-   while the bottom "+ New Preset" button stays anchored. */
 .token-presets.preset-manager .preset-manager-body {
   display: flex;
   flex-direction: column;
@@ -28,7 +26,7 @@
   border-radius: 4px;
 }
 
-/* Builtin presets (locked) stay as fieldsets and use uniform padding */
+/*Builtin presets (locked)*/
 .token-presets fieldset.preset {
   padding: 0.5em 0.75em;
 }
@@ -140,7 +138,6 @@
   font-weight: normal;
 }
 
-/* Boolean fields render as a single Foundry-style checkbox with label */
 .token-presets .field.boolean {
   grid-template-columns: 1fr;
 }
@@ -157,8 +154,6 @@
   flex: 0 0 auto;
 }
 
-/* Flags field: label on its own line, checkboxes in a responsive grid below.
-   Auto-fit columns keep the checkbox group compact regardless of dialog width. */
 .token-presets .field.flags {
   grid-template-columns: 1fr;
   gap: 0.25em;
@@ -246,7 +241,6 @@
 .token-presets-token-list select[multiple],
 .token-presets-actor-list select[multiple] {
   width: 100%;
-  min-height: 240px;
   font-family: inherit;
 }
 
@@ -303,6 +297,81 @@
   min-width: 0;
 }
 
+/* Vertical grow chain: when the dialog is resized taller, the explorer pane
+   (folder tree / token filter + list) fills the new space. Every flex ancestor
+   needs min-height: 0 so children are allowed to grow past their content
+   intrinsic size. */
+.application.token-presets-multi-picker-dialog .window-content,
+.application.token-presets-tag-actors-dialog .window-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.application.token-presets-multi-picker-dialog .window-content > form,
+.application.token-presets-tag-actors-dialog .window-content > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.5em;
+}
+
+/* V14's DialogV2 wraps user content in a .dialog-content element between the
+   form and our markup. It defaults to flex: 0 1 auto so it sits at content
+   height — which traps the footer with empty space below. Force it to fill
+   the form so the footer rides the dialog's bottom edge. */
+.application.token-presets-multi-picker-dialog .window-content form > .dialog-content,
+.application.token-presets-tag-actors-dialog .window-content form > .dialog-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.5em;
+}
+
+/* The top "Preset" picker stays compact so it doesn't compete with the
+   explorer for vertical space. Targets the form-group as a direct child of
+   .dialog-content (not the nested .explorer-list-pane form-group). */
+.application.token-presets-multi-picker-dialog .dialog-content > .form-group,
+.application.token-presets-tag-actors-dialog .dialog-content > .form-group {
+  flex: 0 0 auto;
+}
+
+/* The explorer is the one element that should absorb the extra space. */
+.application.token-presets-multi-picker-dialog .token-presets-explorer,
+.application.token-presets-tag-actors-dialog .token-presets-explorer {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Inside each pane: be explicit about which child is compact and which one
+   grows. Without this, Foundry's form-group defaults can let labels/inputs
+   share vertical space with the scrollable child, leaving it floating with
+   empty gaps above. Override to a deterministic "header pinned top, scroll
+   area fills the rest" layout. */
+.token-presets-explorer .token-presets-folder-tree-container,
+.token-presets-explorer .token-presets-token-filter-container,
+.token-presets-explorer .explorer-list-pane {
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.token-presets-folder-tree-container > .folder-tree-header,
+.token-presets-token-filter-container > .filter-header,
+.token-presets-explorer .explorer-list-pane > label,
+.token-presets-explorer .explorer-list-pane > .token-presets-search,
+.token-presets-explorer .explorer-list-pane > .hint {
+  flex: 0 0 auto;
+}
+
+.token-presets-folder-tree-container > .folder-tree,
+.token-presets-token-filter-container > .filter-list,
+.token-presets-explorer .explorer-list-pane > select[multiple] {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
 .application.token-presets-multi-picker-dialog .window-content select,
 .application.token-presets-multi-picker-dialog .window-content input,
 .application.token-presets-tag-actors-dialog .window-content select,
@@ -328,6 +397,7 @@
   overflow: auto;
   min-width: 160px;
   min-height: 400px;
+  max-height: none;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -353,7 +423,7 @@
   flex: 1;
   overflow-y: auto;
   min-width: 140px;
-  min-height: 350px;
+  min-height: 0;
   border: 1px solid var(--color-border-light-tertiary, #aaa);
   border-radius: 3px;
   padding: 0.2em;
@@ -408,15 +478,10 @@
 .token-presets-token-filter-container .disposition-friendly { color: #2e8b57; }
 .token-presets-token-filter-container .disposition-secret { color: #8a4a8c; }
 
-.token-presets-explorer .token-presets-folder-tree-container .folder-tree {
-  flex: 1;
-  max-height: none;
-  min-height: 300px;
-}
-
 .token-presets-explorer .explorer-list-pane {
   flex: 1 1 auto;
-  min-width: 220px;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.3em;
@@ -429,7 +494,7 @@
 
 .token-presets-explorer .explorer-list-pane select[multiple] {
   flex: 1;
-  min-height: 300px;
+  min-height: 0;
 }
 
 .token-presets-explorer .explorer-list-pane .token-presets-search {
@@ -481,6 +546,10 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.3em;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+  min-height: 32px;
 }
 
 .token-presets-folder-tree-container .folder-tree-header label {
@@ -519,7 +588,9 @@
 }
 
 .token-presets-folder-tree-container .folder-tree {
-  max-height: 200px;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
   border: 1px solid var(--color-border-light-tertiary, #aaa);
   border-radius: 3px;
@@ -618,10 +689,17 @@
   font-family: inherit;
   font-size: inherit;
   color: #d1b6a1;
-  Background: #251406;
+  background: #251406;
   border-radius: 3px;
 }
 
 .token-presets-folder-ctxmenu button:hover {
   background: rgba(70, 130, 200, 0.18);
+}
+
+.application.token-presets-multi-picker-dialog .form-footer,
+.application.token-presets-tag-actors-dialog .form-footer,
+.application.token-presets-multi-picker-dialog footer,
+.application.token-presets-tag-actors-dialog footer {
+  flex: 0 0 auto;
 }

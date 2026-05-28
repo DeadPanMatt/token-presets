@@ -7,6 +7,47 @@ directly to tokens already on the canvas.
 
 ---
 
+## 0.15.1 - Filter dialogs now grow with the window
+
+When you drag the **Apply Preset to Canvas Tokens** or **Tag Actors
+with a Preset** dialog to be taller, the folder/filter pane on the left
+and the actor / token list on the right now stretch with it, and the
+Apply / Cancel buttons ride the bottom edge of the window. Before this,
+making the dialog taller just left empty space below the buttons - the
+contents stayed at their original height no matter how big the window
+got.
+
+---
+
+## 0.15.0 - Dynamic Token Ring is back
+
+A new **Dynamic Token Ring** section appears in the preset manager
+(removed in 0.10.1, brought back now that Foundry V14 has settled on
+its schema):
+
+- **Ring Enabled** - toggle the ring on or off.
+- **Ring Color** and **Background Color** - colour pickers for both.
+- **Ring Effects** - tick any combination of Ring Pulse, Ring Gradient,
+  Background Wave, Spectral Pulse, and Color Over Subject. Same options
+  and the same labels as Foundry's own Token Config dialog.
+- **Subject Scale Correction** - slider from 0.5× to 3×.
+
+The subject texture path isn't a preset field; it's usually different
+per actor so a shared preset wouldn't really help. Set it in Token
+Config when you need to.
+
+A couple of related visual changes that came along for the ride:
+
+- Each preset section (Identity, Appearance, Dynamic Token Ring) now
+  renders as a bordered fieldset with a header, so it's clearer at a
+  glance which fields belong to which section.
+- Effect labels are pulled from Foundry's own translations, so what
+  you see in the preset manager matches Foundry's default Token Config
+  dialog exactly - including V14's rename of one of the effects to
+  "Spectral Pulse".
+
+---
+
 ## 0.14.0 - Filter canvas tokens by disposition, link state, or visibility
 
 The "Apply Preset to Canvas Tokens" dialog now uses a **token-attribute

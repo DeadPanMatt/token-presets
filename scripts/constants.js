@@ -9,24 +9,12 @@ export const FLAGS = {
   PRESET_ID: "presetId"
 };
 
-/**
- * Section IDs drive the collapsible groups in the preset manager UI.
- * Order here determines display order.
- */
 export const SECTIONS = {
   identity:   { label: "TOKEN_PRESETS.Section.identity" },
   appearance: { label: "TOKEN_PRESETS.Section.appearance" },
   ring:       { label: "TOKEN_PRESETS.Section.ring" }
 };
 
-/**
- * Live source for the token-ring effect flags. Returns a { NAME: bitValue }
- * map suitable for FIELD_DEFS `options`. Resolved at render time so module
- * load order doesn't matter.
- *
- * Excludes DISABLED (bit 0) and ENABLED (bit 1)
- * ring rendering states, not user-toggleable visual effects. 
- */
 export function getRingEffectFlags() {
   const ringClass =
     foundry?.canvas?.placeables?.tokens?.TokenRing ??
@@ -40,8 +28,6 @@ export function getRingEffectFlags() {
   );
 }
 
-// Mirror fields don't map to a single path — they sign-flip whatever
-// scaleX/scaleY is, so they compose with the `scale` field.
 function mirrorApply(axis) {
   const path = axis === "h" ? "texture.scaleX" : "texture.scaleY";
   return (value, updates, snapshot, doc) => {
@@ -52,9 +38,8 @@ function mirrorApply(axis) {
     foundry.utils.setProperty(updates, path, value ? -magnitude : magnitude);
   };
 }
-
+//Identity
 export const FIELD_DEFS = {
-  // --- Identity ---
   displayName: {
     label: "TOKEN_PRESETS.Field.displayName",
     type: "select",
@@ -86,14 +71,11 @@ export const FIELD_DEFS = {
     path: "actorLink",
     default: false
   },
-
-  // --- Appearance ---
+  //Appearance
   scale: {
     label: "TOKEN_PRESETS.Field.Scale",
     type: "number",
     section: "appearance",
-    // Foundry's "scale" input is a UX convenience; the document schema has
-    // separate scaleX/scaleY. Writing both keeps tokens uniformly scaled.
     paths: ["texture.scaleX", "texture.scaleY"],
     default: 1,
     min: 0.2,
@@ -127,8 +109,7 @@ export const FIELD_DEFS = {
     max: 360,
     step: 1
   },
-  // Mirror must follow `scale` in declaration order so the sign flip
-  // composes with any preset-driven scale value applied earlier.
+
   mirrorH: {
     label: "TOKEN_PRESETS.Field.mirrorH",
     type: "boolean",
@@ -150,8 +131,7 @@ export const FIELD_DEFS = {
     path: "lockRotation",
     default: false
   },
-
-  // --- Dynamic Token Ring ---
+  // Ring
   ringEnabled: {
     label: "TOKEN_PRESETS.Field.ringEnabled",
     type: "boolean",
@@ -205,9 +185,6 @@ export function emptyPreset(name = "New Preset") {
   };
 }
 
-// Built-in read-only presets. These are not stored in settings; they're shipped with
-// the module and shown alongside user presets. The "foundry-default" entry is what
-// "None" reverts to on canvas surfaces.
 export const BUILTIN_FOUNDRY_DEFAULT_ID = "builtin:foundry-default";
 
 export const BUILTIN_PRESETS = {
@@ -229,7 +206,7 @@ export const BUILTIN_PRESETS = {
       mirrorH:             { enabled: true, value: false },
       mirrorV:             { enabled: true, value: false },
       lockRotation:        { enabled: true, value: false },
-      // Dynamic Token Ring — Foundry's schema defaults.
+      // Ring
       ringEnabled:         { enabled: true, value: false },
       ringColor:           { enabled: true, value: "" },
       ringBackground:      { enabled: true, value: "" },
@@ -239,7 +216,6 @@ export const BUILTIN_PRESETS = {
   }
 };
 
-/** Resolve a preset id against builtins first, then user-defined presets. */
 export function getPresetById(id) {
   if (!id) return null;
   if (BUILTIN_PRESETS[id]) return BUILTIN_PRESETS[id];

@@ -57,15 +57,15 @@ Hooks.on("preCreateToken", (tokenDoc) => {
   if (Object.keys(updates).length) tokenDoc.updateSource(updates);
 });
 
-/** A field's apply targets — supports either a single `path` or an array `paths`. */
+// A field's apply targets — supports either a single `path` or an array `paths`. */
 function fieldPaths(def) {
   return def.paths ?? (def.path ? [def.path] : []);
 }
 
 /**
- * Apply one preset field's value to an in-progress update object.
- * Supports custom apply functions (for fields that don't map cleanly to a path,
- * e.g. mirror which composes with scale by sign-flipping).
+  Apply one preset field's value to an in-progress update object.
+  Supports custom apply functions (for fields that don't map cleanly to a path,
+  e.g. mirror which composes with scale by sign-flipping).
  */
 function applyField(def, value, updates, snapshot, doc) {
   if (typeof def.apply === "function") {
@@ -78,9 +78,6 @@ function applyField(def, value, updates, snapshot, doc) {
   if ((def.type === "color" || def.type === "image") && writeValue === "") {
     writeValue = null;
   } else if (def.type === "flags") {
-    // V14 ring.effects expects a Set/Array of effect-key strings. Convert any
-    // legacy bitmask integer (from presets saved during early dev) up to an
-    // array so apply doesn't trip schema validation.
     if (typeof writeValue === "number") {
       const flagsMap = def.options?.() ?? {};
       const bitmask = writeValue;
@@ -97,7 +94,6 @@ function applyField(def, value, updates, snapshot, doc) {
 }
 
 // Per-actor context menu: "Set Token Preset…" — register on every plausible hook name
-// so this works across V12/V13 sidebar variants. addActorContextOption dedupes.
 for (const hook of ["getActorContextOptions", "getActorDirectoryEntryContext"]) {
   Hooks.on(hook, (_appOrHtml, options) => addActorContextOption(options));
 }
@@ -118,7 +114,6 @@ function patchActorCreateDialog() {
 
   const original = docCls.createDialog;
   docCls.createDialog = async function patchedCreateDialog(data = {}, ...rest) {
-    // Skip the picker for compendium-targeted creates (createOptions.pack)
     const targetingPack = rest.some((arg) => arg && typeof arg === "object" && "pack" in arg && arg.pack);
     if (targetingPack) return original.call(this, data, ...rest);
 
@@ -140,7 +135,6 @@ function patchActorCreateDialog() {
   };
 }
 
-/* Context menu actions for existing actors and folders.                    */
 function addActorContextOption(options) {
   if (!Array.isArray(options)) return;
   if (options.some((o) => o?.name === "TOKEN_PRESETS.Context.setPreset")) return;
@@ -281,10 +275,6 @@ function collectFolderActors(folder) {
   return result;
 }
 
-/* ------------------------------------------------------------------------ */
-/* Push: write preset values onto already-placed token documents.            */
-/* ------------------------------------------------------------------------ */
-
 function addTokenToolbarButton(controls) {
   const tokenControl = Array.isArray(controls)
     ? controls.find((c) => c?.name === "token" || c?.name === "tokens")
@@ -327,10 +317,8 @@ async function applyPresetToSelectedTokens() {
     return;
   }
 
-  // Pre-select whatever the user already has controlled on the canvas.
   const preselected = new Set((canvas.tokens?.controlled ?? []).map((t) => t.id));
 
-  // Sort tokens alphabetically by display name for predictable order.
   const sortedTokens = tokens
     .map((td) => ({
       id: td.id,
@@ -461,7 +449,6 @@ async function applyPresetToSelectedTokens() {
     .filter((td) => td);
   if (!tokenDocs.length) return;
 
-  // None ("") falls back to the built-in Foundry Default preset.
   const presetId = result.presetId || BUILTIN_FOUNDRY_DEFAULT_ID;
   const preset = getPresetById(presetId);
   if (!preset) return;
@@ -470,10 +457,6 @@ async function applyPresetToSelectedTokens() {
   if (result.presetId) await game.settings.set(MODULE_ID, SETTINGS.DEFAULT_PRESET_ID, result.presetId);
   ui.notifications?.info(game.i18n.format("TOKEN_PRESETS.Push.done", { count: total }));
 }
-
-/* ------------------------------------------------------------------------ */
-/* Landing window: persistent hub opened by the toolbar button.             */
-/* ------------------------------------------------------------------------ */
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -523,11 +506,6 @@ function openLandingDialog() {
   _landingInstance.render({ force: true });
 }
 
-/* ------------------------------------------------------------------------ */
-/* Actor-folder helpers used by the filter drop-downs.                       */
-/* ------------------------------------------------------------------------ */
-
-/** Build a depth-tagged list of every Actor folder, respecting Foundry's sort order. */
 function buildActorFolderTree() {
   const folders = [...game.folders].filter((f) => f.type === "Actor");
   const byParent = new Map();
@@ -550,7 +528,6 @@ function buildActorFolderTree() {
   return out;
 }
 
-/** Collect the given folder id plus all descendant folder ids into a Set. */
 function collectDescendantFolderIds(folderId) {
   const ids = new Set([folderId]);
   const queue = [folderId];
@@ -569,12 +546,6 @@ function collectDescendantFolderIds(folderId) {
   return ids;
 }
 
-/**
- * Render an Actor-folder tree as HTML for embedding into a dialog.
- * Behaves like a small file-explorer pane: each folder has its own chevron
- * for expanding/collapsing, clicking the name selects the folder for filtering.
- * The synthetic rows "" (all folders) and "__uncategorized__" are always shown.
- */
 function renderFolderTreeHTML(selectedId, expandedIds) {
   const folders = [...game.folders].filter((f) => f.type === "Actor");
   const byParent = new Map();
@@ -612,11 +583,6 @@ function renderFolderTreeHTML(selectedId, expandedIds) {
     walk(null, 0)
   ].join("");
 }
-
-/* ------------------------------------------------------------------------ */
-/* Token-attribute filter (used by the "Apply Preset to Canvas Tokens"      */
-/* dialog instead of the folder filter — placed tokens don't have folders). */
-/* ------------------------------------------------------------------------ */
 
 function renderTokenFilterBlock() {
   const t = (k) => escapeHTML(game.i18n.localize(`TOKEN_PRESETS.TokenFilter.${k}`));
@@ -675,7 +641,6 @@ function setupTokenFilterHandlers(rootEl, onChangeFilter) {
   return () => container.removeEventListener("click", onClick);
 }
 
-/** Does a token option's data-* match the given filter id? */
 function tokenOptionMatchesFilter(option, filter) {
   if (!filter) return true;
   if (filter.startsWith("disposition:")) {
@@ -688,7 +653,6 @@ function tokenOptionMatchesFilter(option, filter) {
   return true;
 }
 
-/** Combined token-filter + search filter for the apply-tokens dialog. */
 function applyTokenFilterAndSearch(listEl, filter, searchTerm) {
   const needle = (searchTerm || "").toLowerCase().trim();
   for (const option of listEl.options) {
@@ -701,7 +665,6 @@ function applyTokenFilterAndSearch(listEl, filter, searchTerm) {
   }
 }
 
-/** Tree + new-folder button block for embedding into a dialog's content. */
 function renderFolderPickerBlock() {
   return `
     <div class="form-group token-presets-folder-tree-container">
@@ -717,10 +680,6 @@ function renderFolderPickerBlock() {
   `;
 }
 
-/**
- * Wire up event handlers for an embedded folder tree. Returns a teardown
- * function the caller must invoke after the dialog closes.
- */
 function setupFolderTreeHandlers(rootEl, onSelectFolder) {
   const container = rootEl.querySelector(".token-presets-folder-tree-container");
   if (!container) return () => {};
@@ -759,7 +718,6 @@ function setupFolderTreeHandlers(rootEl, onSelectFolder) {
 
   container.addEventListener("click", onClick);
 
-  // Right-click anywhere on a folder row to open a small "New Folder here" menu.
   let openMenu = null;
   const closeMenu = () => {
     if (openMenu) {
@@ -798,8 +756,6 @@ function setupFolderTreeHandlers(rootEl, onSelectFolder) {
       }
     });
 
-    // Dismiss on any outside click. Defer attaching so the originating right-click
-    // doesn't immediately close the menu we just opened.
     setTimeout(() => {
       const outside = (ev) => {
         if (!menu.contains(ev.target)) {
@@ -827,7 +783,6 @@ function setupFolderTreeHandlers(rootEl, onSelectFolder) {
   };
 }
 
-/** Which actor IDs match a folder-filter selection? null means "no filter". */
 function actorIdsInFolderFilter(folderId) {
   if (!folderId) return null;
   if (folderId === "__uncategorized__") {
@@ -839,7 +794,6 @@ function actorIdsInFolderFilter(folderId) {
   );
 }
 
-/** Hide/disable list items not allowed by the current filter. Clears stale selection. */
 function applyFolderFilterToList(listEl, allowedActorIds, getActorIdForOption) {
   for (const option of listEl.options) {
     const actorId = getActorIdForOption(option);
@@ -850,7 +804,6 @@ function applyFolderFilterToList(listEl, allowedActorIds, getActorIdForOption) {
   }
 }
 
-/** Combined folder + name-search filter. Both must match for an option to show. */
 function applyCombinedFilter(listEl, allowedActorIds, searchTerm, getActorIdForOption) {
   const needle = (searchTerm || "").toLowerCase().trim();
   for (const option of listEl.options) {
@@ -864,11 +817,6 @@ function applyCombinedFilter(listEl, allowedActorIds, searchTerm, getActorIdForO
   }
 }
 
-/**
- * Make a vertical splitter between two flex children draggable.
- * `treeContainer` is the left child whose width we change.
- * Returns a teardown function for cleanup on dialog close.
- */
 function setupSplitter(treeContainer, splitterEl) {
   if (!treeContainer || !splitterEl) return () => {};
   let dragging = false;
@@ -908,10 +856,6 @@ function setupSplitter(treeContainer, splitterEl) {
     document.removeEventListener("mouseup", onUp);
   };
 }
-
-/* ------------------------------------------------------------------------ */
-/* Multi-actor tagging dialog (from the landing page).                       */
-/* ------------------------------------------------------------------------ */
 
 async function openTagActorsDialog() {
   const actors = [...game.actors].sort((a, b) => a.name.localeCompare(b.name));
@@ -1090,7 +1034,6 @@ async function pushPresetForActor(actor) {
 async function pushPresetForFolder(folder) {
   const actors = collectFolderActors(folder);
 
-  // Group placements by their actor's flagged preset id.
   const tokensByPreset = new Map();
   for (const actor of actors) {
     const pid = actor.getFlag(MODULE_ID, FLAGS.PRESET_ID);

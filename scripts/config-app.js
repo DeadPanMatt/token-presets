@@ -41,18 +41,14 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  /** Working copy of presets edited in the form. Persisted on submit. */
   #presets = null;
 
-  /** Which preset rows are currently expanded. Empty on first open = all collapsed. */
   #expandedIds = new Set();
 
   async _prepareContext(_options) {
     if (!this.#presets) {
       const stored = game.settings.get(MODULE_ID, SETTINGS.PRESETS) ?? {};
       this.#presets = foundry.utils.deepClone(stored);
-      // Normalize: every field is always managed in the new model. Old presets
-      // with enabled:false get upgraded in-memory; saving persists the change.
       for (const preset of Object.values(this.#presets)) {
         for (const f of Object.values(preset.fields ?? {})) {
           f.enabled = true;
@@ -99,11 +95,6 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
           selected: val === f.value
         }));
       } else if (def.type === "flags") {
-        // V14 stores ring.effects as an array of effect-key strings. We keep
-        // the FIELD_DEFS `options` map (NAME → bitValue) so we know which
-        // names are user-toggleable, but the preset value itself is the array.
-        // Legacy bitmask integers (saved during early dev of this feature) are
-        // up-converted on read.
         const flagsMap = def.options?.() ?? {};
         let current = f.value;
         if (typeof current === "number") {
@@ -149,7 +140,6 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     return out;
   }
 
-  /** Capture in-flight form edits into the working copy so re-render keeps them. */
   #captureFormState() {
     if (!this.element) return;
     const FDE = foundry.applications?.ux?.FormDataExtended ?? FormDataExtended;
@@ -157,7 +147,6 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#applyFormData(data);
   }
 
-  /** Capture which user-preset rows are currently open so a re-render preserves them. */
   #captureExpandedState() {
     if (!this.element) return;
     this.#expandedIds.clear();
@@ -177,7 +166,6 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
         const def = FIELD_DEFS[fk];
         if (!def || !target.fields[fk]) continue;
 
-        // Every field is always managed in the new model.
         target.fields[fk].enabled = true;
 
         if (def.type === "boolean") {
@@ -186,9 +174,7 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
         }
 
         if (def.type === "flags") {
-          // Each option comes back as its own checkbox under `.flags.<NAME>`.
-          // Collect the checked names into an array — that matches V14's
-          // ring.effects shape (Set/Array of effect-key strings).
+
           const flagsMap = def.options?.() ?? {};
           const submitted = f.flags ?? {};
           const selected = [];
@@ -205,7 +191,6 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
             if (v === "") continue;
             v = Number(v);
           }
-          // color stays as a string (empty string applied as null in main.js)
           target.fields[fk].value = v;
         }
       }
@@ -217,7 +202,6 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#captureFormState();
     const preset = emptyPreset(game.i18n.localize("TOKEN_PRESETS.Manager.newDefaultName"));
     this.#presets[preset.id] = preset;
-    // Open the new preset so the user can start editing it right away.
     this.#expandedIds.add(preset.id);
     this.render();
   }
@@ -262,7 +246,6 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
     const defaults = BUILTIN_PRESETS[BUILTIN_FOUNDRY_DEFAULT_ID];
     if (!defaults?.fields) return;
     this.#presets[id].fields = foundry.utils.deepClone(defaults.fields);
-    // Keep the affected preset expanded so the user sees the values that just changed.
     this.#expandedIds.add(id);
     this.render();
   }
@@ -274,15 +257,9 @@ export class PresetManager extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 }
 
-/**
- * Resolve a user-facing label for a ring-effect bit-flag key.
- * Foundry has renamed some labels across versions while keeping the constant
- * keys stable (notably V14's ENABLED → "Spectral Pulse"). Probe the i18n keys
- * Foundry registers; if none are found, pretty-print the SHOUTY_CASE constant.
- */
 function localizeFlagLabel(name) {
   const candidates = [
-    `TOKEN.RING.EFFECTS.${name}`,   // confirmed V14 key
+    `TOKEN.RING.EFFECTS.${name}`,
     `TOKEN.RING_EFFECTS.${name}`,
     `TOKEN.RingEffects.${name}`,
     `TOKEN_RING.EFFECTS.${name}`,

@@ -7,6 +7,14 @@ directly to tokens already on the canvas.
 
 ---
 
+## 0.18.2 - Performance and minor "Security" fixes
+
+- Fixed an issue where, after a right click was performed to create a new folder but the folder was never created, the right click function was still active.
+- Made the module - GM only.
+- general performance improvements.
+
+---
+
 ## 0.18.1 - Rest of the Basic Vision fields
 
 The Vision section now covers the full **Basic Configuration** group

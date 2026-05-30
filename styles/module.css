@@ -87,7 +87,9 @@
   padding: 0.5em 0.75em;
 }
 
-.token-presets .preset .section {
+/* Section panels — used inside each preset card AND inside the live-edit
+   form, since both reuse the same .section / .section-toggle markup. */
+.token-presets .section {
   margin: 0.5em 0;
   border: 1px solid var(--color-border-light-tertiary, #999);
   border-radius: 6px;
@@ -95,7 +97,7 @@
   background: rgba(0, 0, 0, 0.025);
 }
 
-.token-presets .preset .section:first-of-type {
+.token-presets .section:first-of-type {
   margin-top: 0.25em;
 }
 
@@ -285,44 +287,17 @@
   opacity: 0.85;
 }
 
-.token-presets-live-edit .live-edit-section {
-  margin: 0;
-  padding: 0.25em 0.75em 0.5em;
-  border: 1px solid var(--color-border-light-tertiary, #999);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.025);
-}
+/* Live edit reuses .token-presets .section / .field styling for the body so
+   it visually matches the preset manager. Only the bits that are specific
+   to live edit (the "Editing N tokens" header + the "(mixed)" suffix on
+   labels of fields whose targeted tokens disagree) live below. */
 
-.token-presets-live-edit .live-edit-section > legend {
-  padding: 0 0.4em;
-  font-weight: 600;
-}
-
-.token-presets-live-edit .live-edit-field.mixed > label::after {
+.token-presets-live-edit .field.mixed > .field-label::after,
+.token-presets-live-edit .field.boolean.mixed .bool > span::after {
   content: " (mixed)";
   font-style: italic;
   opacity: 0.6;
   font-size: 0.85em;
-}
-
-.token-presets-live-edit .live-edit-field .mixed-hint {
-  font-style: italic;
-  opacity: 0.7;
-  font-size: 0.85em;
-  margin-left: 0.5em;
-}
-
-.token-presets-live-edit .live-edit-field.flags .flag-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.15em 0.75em;
-}
-
-.token-presets-live-edit .live-edit-field.flags .flag-list .checkbox {
-  display: flex;
-  gap: 0.5em;
-  align-items: center;
-  margin: 0;
 }
 
 .token-presets-landing-app .landing-body {

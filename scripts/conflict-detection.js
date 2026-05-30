@@ -4,6 +4,13 @@ const NAMED_CONTROL_SELECTOR =
   "input[name], select[name], textarea[name], " +
   "multi-checkbox[name], range-picker[name], color-picker[name], file-picker[name]";
 
+const SAFE_TOOLTIP_RE = /^[\w.\-:\s]+$/;
+function sanitizeTooltip(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  if (raw.length > 200) return null;
+  return SAFE_TOOLTIP_RE.test(raw) ? raw : null;
+}
+
 export function installConflictDetection() {
   Hooks.on("renderTokenConfig", onTokenConfigRender);
   Hooks.on("renderApplicationV2", (app, html) => {
@@ -31,7 +38,7 @@ function onTokenConfigRender(_app, html) {
     const isDisabled = el.hasAttribute("disabled") || el.disabled === true;
 
     if (isDisabled) {
-      const tooltip = el.getAttribute("data-tooltip") || null;
+      const tooltip = sanitizeTooltip(el.getAttribute("data-tooltip"));
       const prev = cache[name];
       if (!prev || prev.tooltip !== tooltip) {
         cache[name] = { tooltip, lastSeen: Date.now() };
@@ -69,12 +76,12 @@ export function applyConflictDisable(rootEl) {
       }
     }
     if (!hit) continue;
-
+    const safeTooltip = sanitizeTooltip(hit.tooltip);
     const fragment = `.${key}.`;
     for (const el of rootEl.querySelectorAll(`[name*="${fragment}"]`)) {
       el.disabled = true;
       el.setAttribute("disabled", "");
-      if (hit.tooltip) el.setAttribute("data-tooltip", hit.tooltip);
+      if (safeTooltip) el.setAttribute("data-tooltip", safeTooltip);
     }
   }
 }

@@ -268,6 +268,7 @@ function addTokenToolbarButton(controls) {
 }
 
 async function applyPresetToSelectedTokens() {
+  if (!game.user?.isGM) return;
   const scene = canvas.scene;
   if (!scene) {
     ui.notifications?.warn(game.i18n.localize("TOKEN_PRESETS.MultiPicker.noScene"));
@@ -473,6 +474,7 @@ class LandingPage extends HandlebarsApplicationMixin(ApplicationV2) {
 let _landingInstance = null;
 
 function openLandingDialog() {
+  if (!game.user?.isGM) return;
   if (_landingInstance?.rendered) {
     _landingInstance.bringToTop?.();
     return;
@@ -482,6 +484,7 @@ function openLandingDialog() {
 }
 
 async function openLiveEditForm() {
+  if (!game.user?.isGM) return;
   const controlled = canvas?.tokens?.controlled ?? [];
   const docs = controlled.map((t) => t.document).filter(Boolean);
   if (!docs.length) {
@@ -713,7 +716,12 @@ function setupFolderTreeHandlers(rootEl, onSelectFolder) {
   container.addEventListener("click", onClick);
 
   let openMenu = null;
+  let openMenuOutsideListener = null;
   const closeMenu = () => {
+    if (openMenuOutsideListener) {
+      document.removeEventListener("mousedown", openMenuOutsideListener, true);
+      openMenuOutsideListener = null;
+    }
     if (openMenu) {
       openMenu.remove();
       openMenu = null;
@@ -751,18 +759,19 @@ function setupFolderTreeHandlers(rootEl, onSelectFolder) {
     });
 
     setTimeout(() => {
-      const outside = (ev) => {
-        if (!menu.contains(ev.target)) {
-          closeMenu();
-          document.removeEventListener("mousedown", outside, true);
-        }
+      if (!openMenu) return;
+      openMenuOutsideListener = (ev) => {
+        if (!menu.contains(ev.target)) closeMenu();
       };
-      document.addEventListener("mousedown", outside, true);
+      document.addEventListener("mousedown", openMenuOutsideListener, true);
     }, 0);
   };
   container.addEventListener("contextmenu", onContextMenu);
 
-  const onFolderChange = () => rerender();
+  const onFolderChange = (folder) => {
+    if (folder?.type !== "Actor") return;
+    rerender();
+  };
   Hooks.on("createFolder", onFolderChange);
   Hooks.on("updateFolder", onFolderChange);
   Hooks.on("deleteFolder", onFolderChange);
@@ -813,36 +822,33 @@ function applyCombinedFilter(listEl, allowedActorIds, searchTerm, getActorIdForO
 
 function setupSplitter(treeContainer, splitterEl) {
   if (!treeContainer || !splitterEl) return () => {};
-  let dragging = false;
   let startX = 0;
   let startWidth = 0;
 
-  const onDown = (e) => {
-    dragging = true;
-    startX = e.clientX;
-    startWidth = treeContainer.offsetWidth;
-    splitterEl.classList.add("dragging");
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    e.preventDefault();
-  };
   const onMove = (e) => {
-    if (!dragging) return;
     const dx = e.clientX - startX;
     const newWidth = Math.max(140, Math.min(560, startWidth + dx));
     treeContainer.style.flex = `0 0 ${newWidth}px`;
   };
   const onUp = () => {
-    if (!dragging) return;
-    dragging = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
     splitterEl.classList.remove("dragging");
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   };
+  const onDown = (e) => {
+    startX = e.clientX;
+    startWidth = treeContainer.offsetWidth;
+    splitterEl.classList.add("dragging");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    e.preventDefault();
+  };
 
   splitterEl.addEventListener("mousedown", onDown);
-  document.addEventListener("mousemove", onMove);
-  document.addEventListener("mouseup", onUp);
 
   return () => {
     splitterEl.removeEventListener("mousedown", onDown);
@@ -852,6 +858,7 @@ function setupSplitter(treeContainer, splitterEl) {
 }
 
 async function openTagActorsDialog() {
+  if (!game.user?.isGM) return;
   const actors = [...game.actors].sort((a, b) => a.name.localeCompare(b.name));
   if (!actors.length) {
     ui.notifications?.info(game.i18n.localize("TOKEN_PRESETS.TagActors.noActors"));
